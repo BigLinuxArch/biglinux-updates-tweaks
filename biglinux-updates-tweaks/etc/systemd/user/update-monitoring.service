@@ -1,0 +1,10 @@
+[Unit]
+Description=Update Monitoring
+
+[Service]
+# Type=oneshot
+# ExecStartPre=sleep 15
+ExecStart=/usr/local/bin/update-monitoring
+
+[Install]
+WantedBy=multi-user.target

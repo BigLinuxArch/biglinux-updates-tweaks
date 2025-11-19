@@ -1,0 +1,108 @@
+post_upgrade() {
+
+    # Filter active servers
+    servers=$(grep -v '.*#.*Server' /etc/pacman.d/mirrorcdn | grep Server)
+
+    # If have one of these two addresses, replace file content
+    if echo "$servers" | grep -q -e 'http://manjaro.biglinux.com.br' -e 'http://mirrors2.manjaro.org/repo/'; then
+
+        # Verify first Server line for stable
+        version=$(echo "$servers" | grep -m1 'Server' /etc/pacman.d/mirrorcdn | grep -o '\bstable\b')
+
+        # Verify first Server line for testing
+        if [[ -z $version ]]; then
+            version=$(echo "$servers" | grep -m1 'Server' /etc/pacman.d/mirrorcdn | grep -o '\btesting\b')
+        fi
+
+        # Verify first Server line for unstable
+        if [[ -z $version ]]; then
+            echo "$servers" | grep -m1 'Server' /etc/pacman.d/mirrorcdn | grep -o '\bunstable\b'
+        fi
+
+        # Verify about version correctly detected before apply
+        if [[ "$version" == "stable" ]] || [[ "$version" == "testing" ]] || [[ "$version" == "unstable" ]]; then
+
+            # Make new mirrorcdn file
+            echo "## Static mirrors from CDNs
+
+## CDN from CDN77
+Server = https://mirrors2.manjaro.org/$version/\$repo/\$arch
+
+## CDN from cloudflare
+Server = https://mirrors.cicku.me/manjaro/$version/\$repo/\$arch
+
+## CDN from CDN77 too
+Server = http://mirrors.manjaro.org/repo/$version/\$repo/\$arch
+
+Include=/etc/pacman.d/mirrorlist" > /etc/pacman.d/mirrorcdn
+
+    # update repository info
+    mv /var/lib/pacman/db.lck  /var/lib/pacman/db-bkp.lck
+    pacman -Sy
+    mv /var/lib/pacman/db-bkp.lck  /var/lib/pacman/db.lck
+
+        fi
+    fi
+
+    # Add biglinux-updates-tweaks to SyncFirst
+    if [ -n "$( grep SyncFirst /etc/pacman.conf)" ];then
+        if [ -z "$(grep -Ei '(SyncFirst).*(biglinux-updates-tweaks)' /etc/pacman.conf)" ]; then
+            sed -i '/SyncFirst/s/$/ biglinux-updates-tweaks/' /etc/pacman.conf
+        fi
+    fi
+
+    # rm polkit-1
+    systemctl enable --now polkit-1-delete.path
+    systemctl enable --now timedate-check.service
+
+    # Enable update-monitoring.path
+#     for user in $(awk -F':' '{ if ($3 >= 1000 && $1 != "nobody") print $1 }' /etc/passwd); do
+#         sudo -u $user XDG_RUNTIME_DIR=/run/user/$(id -u $user) systemctl -q --user enable --now update-monitoring.service
+#         if [ "$(systemctl is-active --user update-monitoring.service)" != "active" ];then
+#             sudo -u $user XDG_RUNTIME_DIR=/run/user/$(id -u $user) systemctl -q --user restart update-monitoring.service
+#         fi
+#     done
+    if [ "$XDG_CURRENT_DESKTOP" = "KDE" ]; then
+        systemctl -q --global enable update-monitoring.service
+        for user in $(awk -F':' '{ if ($3 >= 1000 && $1 != "nobody") print $1 }' /etc/passwd); do
+            if [ "$(sudo -u $user XDG_RUNTIME_DIR=/run/user/$(id -u $user) systemctl is-active --user update-monitoring.service)" != "active" ];then
+                sudo -u $user XDG_RUNTIME_DIR=/run/user/$(id -u $user) systemctl --user daemon-reload
+                sudo -u $user XDG_RUNTIME_DIR=/run/user/$(id -u $user) systemctl -q --user restart update-monitoring.service
+            fi
+        done
+    elif [ "$(systemctl --global is-enabled update-monitoring.service)" = "enabled" ];then
+        systemctl -q --global disable update-monitoring.service
+        for user in $(awk -F':' '{ if ($3 >= 1000 && $1 != "nobody") print $1 }' /etc/passwd); do
+            sudo -u $user XDG_RUNTIME_DIR=/run/user/$(id -u $user) systemctl -q --user stop update-monitoring.service
+        done
+    fi
+
+    # Update Menus
+    systemctl enable --now update-aplications-menu.service
+
+    # Link qdbus
+    if [ ! -e "/usr/local/bin/qdbus" ];then
+        ln -s /usr/bin/qdbus6 /usr/local/bin/qdbus
+    fi
+    
+    # Remove SyncFirst from /etc/pacman.conf
+    if grep -q SyncFirst /etc/pacman.conf; then
+        sed -i '/SyncFirst/d' /etc/pacman.conf
+    fi
+
+    # Enable pamac-tray-plasma-check-and-reload
+    systemctl -q --global enable pamac-tray-plasma-verify-and-reload.timer
+    for user in $(awk -F':' '{ if ($3 >= 1000 && $1 != "nobody") print $1 }' /etc/passwd); do
+        sudo -u $user XDG_RUNTIME_DIR=/run/user/$(id -u $user) systemctl start -q --user pamac-tray-plasma-verify-and-reload.timer
+    done
+}
+
+post_install() {
+    if [ ! -e "/usr/local/bin/qdbus" ];then
+        ln -s /usr/bin/qdbus6 /usr/local/bin/qdbus
+    fi
+    systemctl enable --now polkit-1-delete.path
+    systemctl enable --now timedate-check.service
+    # Enable pamac-tray-plasma-check-and-reload
+    systemctl -q --global enable pamac-tray-plasma-verify-and-reload.timer
+}

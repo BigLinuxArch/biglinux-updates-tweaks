@@ -1,0 +1,42 @@
+# Maintainer: Bruno Goncalves <bigbruno@gmail.com>
+
+pkgname=biglinux-updates-tweaks
+pkgver=$(date +%y.%m.%d)
+pkgrel=$(date +%H%M)
+arch=('any')
+license=('GPL')
+depends=('biglinux-keyring')
+conflicts=('krunner5')
+replaces=('krunner5')
+provides=('krunner5')
+# depends_aarch64=('biglinux-arm-keyring')
+url="https://github.com/biglinux/biglinux-updates-tweaks"
+pkgdesc="Tweaks to improve system updates"
+source=("git+https://github.com/biglinux/biglinux-updates-tweaks.git")
+md5sums=(SKIP)
+install=biglinux-updates-tweaks.install
+
+package() {
+    # Verify default folder
+    if [ -d "${srcdir}/${pkgname}/${pkgname}" ]; then
+        InternalDir="${srcdir}/${pkgname}/${pkgname}"
+    else
+        InternalDir="${srcdir}/${pkgname}"
+    fi
+
+
+    # Copy files
+    if [ -d "${InternalDir}/usr" ]; then
+        cp -r "${InternalDir}/usr" "${pkgdir}/"
+    fi
+
+    if [ -d "${InternalDir}/etc" ]; then
+        cp -r "${InternalDir}/etc" "${pkgdir}/"
+    fi
+
+    if [ -d "${InternalDir}/opt" ]; then
+        cp -r "${InternalDir}/opt" "${pkgdir}/"
+    fi
+}
+
+
