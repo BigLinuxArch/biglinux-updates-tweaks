@@ -1,8 +1,8 @@
 # Maintainer: Bruno Goncalves <bigbruno@gmail.com>
 
 pkgname=biglinux-updates-tweaks
-pkgver=$(date +%y.%m.%d)
-pkgrel=$(date +%H%M)
+pkgver=
+pkgrel=
 arch=('any')
 license=('GPL')
 depends=('biglinux-keyring')
@@ -12,7 +12,7 @@ provides=('krunner5')
 # depends_aarch64=('biglinux-arm-keyring')
 url="https://github.com/biglinux/biglinux-updates-tweaks"
 pkgdesc="Tweaks to improve system updates"
-source=("git+https://github.com/biglinux/biglinux-updates-tweaks.git")
+source=("git+https://github.com/biglinux/biglinux-updates-tweaks.git#branch=stable-2024-11-26_20-31")
 md5sums=(SKIP)
 install=biglinux-updates-tweaks.install
 
@@ -38,3 +38,5 @@ package() {
         cp -r "${InternalDir}/opt" "${pkgdir}/"
     fi
 }
+
+
