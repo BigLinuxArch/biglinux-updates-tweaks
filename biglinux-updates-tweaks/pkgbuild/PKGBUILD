@@ -1,8 +1,8 @@
 # Maintainer: Bruno Goncalves <bigbruno@gmail.com>
 
 pkgname=biglinux-updates-tweaks
-pkgver=
-pkgrel=
+pkgver=25.02.04
+pkgrel=1706
 arch=('any')
 license=('GPL')
 depends=('biglinux-keyring')
